@@ -1,16 +1,166 @@
-// ✨ 1. MAIN FETCH FUNCTION (Safely handled)
+const API_URL = "https://vestiga-backend-3392.onrender.com/api";
+
+gsap.registerPlugin(ScrollTrigger);
+
+const lenis = new Lenis({ duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), smooth: true });
+lenis.on('scroll', ScrollTrigger.update);
+gsap.ticker.add((time) => { lenis.raf(time * 1000); });
+gsap.ticker.lagSmoothing(0, 0);
+
+const spotlight = document.querySelector('.spotlight');
+const cursor = document.querySelector('.cursor');
+const follower = document.querySelector('.cursor-follower');
+
+// Cursor & Spotlight Movement
+document.addEventListener('mousemove', (e) => {
+    if(spotlight) {
+        spotlight.style.setProperty('--x', `${e.clientX}px`);
+        spotlight.style.setProperty('--y', `${e.clientY}px`);
+    }
+    gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0.1 });
+    gsap.to(follower, { x: e.clientX, y: e.clientY, duration: 0.4, ease: "power2.out" });
+});
+
+// Cursor Hover Effects for Base UI
+document.querySelectorAll('a, button, .magnetic-btn').forEach(el => {
+    el.addEventListener('mouseenter', () => gsap.to(follower, { width: 60, height: 60, backgroundColor: 'rgba(212, 175, 55, 0.1)', duration: 0.3 }));
+    el.addEventListener('mouseleave', () => gsap.to(follower, { width: 40, height: 40, backgroundColor: 'transparent', duration: 0.3 }));
+});
+
+// Scroll Progress
+window.addEventListener('scroll', () => {
+    const scrollProgress = document.querySelector('.scroll-progress');
+    if (scrollProgress) {
+        let scrollVal = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
+        scrollProgress.style.width = `${scrollVal}%`;
+    }
+});
+
+// Background Particles
+const particlesContainer = document.getElementById('particles');
+if (particlesContainer) {
+    for(let i=0; i<30; i++) {
+        let div = document.createElement('div');
+        div.classList.add('particle');
+        div.style.width = Math.random() * 4 + 'px';
+        div.style.height = div.style.width;
+        div.style.left = Math.random() * 100 + 'vw';
+        div.style.top = Math.random() * 100 + 'vh';
+        particlesContainer.appendChild(div);
+        
+        gsap.to(div, {
+            y: `-=${Math.random() * 200 + 100}`,
+            x: `+=${Math.random() * 100 - 50}`,
+            opacity: 0,
+            duration: Math.random() * 10 + 5,
+            repeat: -1,
+            yoyo: true,
+            ease: "sine.inOut"
+        });
+    }
+}
+
+// ✨ Premium Loader & Page Transition
+window.addEventListener('load', () => {
+    const splitTitleElement = document.querySelector('.split-target');
+    const splitBrandElement = document.querySelector('.split-brand');
+    
+    if (splitTitleElement && splitBrandElement) {
+        const splitTitle = new SplitType(splitTitleElement, { types: 'chars' });
+        const splitBrand = new SplitType(splitBrandElement, { types: 'chars' }); 
+        
+        const tl = gsap.timeline();
+        let count = { val: 0 };
+        
+        gsap.set(splitBrand.chars, { opacity: 0, scale: 1.5, filter: 'blur(10px)' });
+        
+        tl.to(count, {
+            val: 100, duration: 1.5, roundProps: "val", ease: "power2.inOut",
+            onUpdate: () => {
+                const loaderCounter = document.querySelector('.loader-counter');
+                if (loaderCounter) loaderCounter.innerText = count.val + "%";
+            }
+        })
+        .to(splitBrand.chars, { opacity: 1, scale: 1, filter: 'blur(0px)', stagger: 0.1, duration: 1, ease: 'expo.out' }, "-=1.5")
+        .to('.loader-overlay-2', { height: 0, duration: 1, ease: 'expo.inOut', delay: 0.5 })
+        .to('.loader-overlay-1', { height: 0, duration: 1, ease: 'expo.inOut' }, "-=0.8")
+        .to('.loader-content', { opacity: 0, duration: 0.5 }, "-=1.5")
+        .set('.luxury-loader', { display: 'none' })
+        .from('.glass-navbar', { y: -100, opacity: 0, duration: 1, ease: 'power3.out' }, "-=0.5")
+        .from(splitTitle.chars, {
+            y: 100, rotationX: -90, opacity: 0, filter: 'blur(10px)',
+            stagger: 0.05, duration: 1.2, ease: 'back.out(1.7)'
+        }, "-=0.5")
+        .from('.fade-up', { y: 30, opacity: 0, duration: 1, stagger: 0.2, ease: 'power2.out' }, "-=0.5");
+    }
+});
+
+// Magnetic Buttons
+document.querySelectorAll('.magnetic-btn').forEach(btn => {
+    btn.addEventListener('mousemove', (e) => {
+        const rect = btn.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width / 2;
+        const y = e.clientY - rect.top - rect.height / 2;
+        gsap.to(btn, { x: x * 0.4, y: y * 0.4, duration: 0.4, ease: 'power2.out' });
+    });
+    btn.addEventListener('mouseleave', () => {
+        gsap.to(btn, { x: 0, y: 0, duration: 0.8, ease: 'elastic.out(1, 0.3)' });
+    });
+});
+
+// ✨ Cart & Modal Global Setup
+let currentCartCount = 0;
+const cartIcon = document.getElementById('cart-icon');
+const cartBadge = document.querySelector('.cart-count');
+const cartDrawer = document.getElementById('cart-drawer');
+const closeCartBtn = document.getElementById('close-cart');
+const cartItemsContainer = document.querySelector('.cart-items');
+const productModal = document.querySelector('.product-modal');
+const modalClose = document.querySelector('.modal-close');
+
+// Toggle Cart Drawer
+if (cartIcon && cartDrawer) {
+    cartIcon.addEventListener('click', (e) => {
+        e.preventDefault();
+        cartDrawer.classList.add('open');
+    });
+}
+if (closeCartBtn && cartDrawer) {
+    closeCartBtn.addEventListener('click', () => cartDrawer.classList.remove('open'));
+}
+
+// Close Product Modal
+if (modalClose && productModal) {
+    modalClose.addEventListener('click', () => {
+        gsap.to('.product-modal', { 
+            clipPath: 'circle(0% at 50% 50%)', 
+            duration: 0.8, 
+            ease: 'power3.inOut',
+            onComplete: () => {
+                productModal.style.display = 'none';
+                lenis.start(); 
+            }
+        });
+    });
+}
+
+// ✨ 1. MAIN FETCH FUNCTION
 async function loadProducts() {
   try {
     const res = await fetch(`${API_URL}/products`);
     const data = await res.json();
     
-    // Debugging: Backend response എന്താണെന്ന് കാണാൻ
     console.log("Backend Response (Customer UI):", data); 
-
-    // Safe fallback: products ഇല്ലെങ്കിൽ empty array ആക്കും
     const products = data.products || []; 
 
     const grid = document.getElementById("product-grid");
+
+    // ✅ NEW CHECK: Stop execution if product-grid is not found
+    if (!grid) {
+        console.error("Error: 'product-grid' element not found in the DOM. Ensure index.html has <div id='product-grid'></div>.");
+        return;
+    }
+
     grid.innerHTML = "";
 
     if (products.length === 0) {
@@ -46,3 +196,124 @@ async function loadProducts() {
     console.error("Error loading products:", err);
   }
 }
+
+// ✨ 2. INTERACTIONS INITIALIZER (For dynamically loaded content)
+function initializeProductInteractions() {
+    ScrollTrigger.refresh();
+
+    // GSAP Scroll Reveal for products
+    gsap.utils.toArray('.reveal-target').forEach(target => {
+        const imgWrapper = target.querySelector('.product-img-wrapper');
+        const img = target.querySelector('.inner-img');
+        
+        if (imgWrapper && img) {
+            gsap.to(imgWrapper, {
+                clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+                duration: 1.5, ease: 'expo.out',
+                scrollTrigger: { trigger: target, start: 'top 80%' }
+            });
+            
+            gsap.from(img, {
+                scale: 1.3, duration: 1.5, ease: 'expo.out',
+                scrollTrigger: { trigger: target, start: 'top 80%' }
+            });
+        }
+    });
+
+    // Custom Cursor for new cards
+    document.querySelectorAll('.product-card').forEach(el => {
+        el.addEventListener('mouseenter', () => gsap.to(follower, { width: 60, height: 60, backgroundColor: 'rgba(212, 175, 55, 0.1)', duration: 0.3 }));
+        el.addEventListener('mouseleave', () => gsap.to(follower, { width: 40, height: 40, backgroundColor: 'transparent', duration: 0.3 }));
+    });
+
+    // Add to Cart Logic (Flying Animation)
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); 
+            
+            if(!cartIcon) return;
+
+            const card = button.closest('.product-card');
+            const img = card.querySelector('.product-image');
+            const title = card.querySelector('h3').innerText;
+            const price = card.querySelector('.price').innerText;
+            
+            const flyingImg = img.cloneNode();
+            flyingImg.classList.add('flying-item');
+            
+            const imgRect = img.getBoundingClientRect();
+            const cartRect = cartIcon.getBoundingClientRect();
+            
+            flyingImg.style.width = '100px';
+            flyingImg.style.height = '100px';
+            flyingImg.style.top = `${imgRect.top + imgRect.height/2 - 50}px`;
+            flyingImg.style.left = `${imgRect.left + imgRect.width/2 - 50}px`;
+            
+            document.body.appendChild(flyingImg);
+            
+            requestAnimationFrame(() => {
+                flyingImg.style.top = `${cartRect.top}px`;
+                flyingImg.style.left = `${cartRect.left}px`;
+                flyingImg.style.width = '20px';
+                flyingImg.style.height = '20px';
+                flyingImg.style.opacity = '0';
+            });
+            
+            setTimeout(() => {
+                flyingImg.remove();
+                currentCartCount++;
+                if(cartBadge) cartBadge.innerText = currentCartCount;
+                gsap.fromTo(cartIcon, { scale: 1.5 }, { scale: 1, duration: 0.5, ease: "back.out(2)" });
+                
+                if(cartItemsContainer) {
+                    if(currentCartCount === 1) cartItemsContainer.innerHTML = ''; 
+                    cartItemsContainer.innerHTML += `
+                        <div class="cart-item-ui">
+                            <img src="${img.src}" alt="${title}">
+                            <div>
+                                <h4>${title}</h4>
+                                <div class="price">${price}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }, 800);
+        });
+    });
+
+    // Extreme Product Reveal Modal 
+    document.querySelectorAll('.product-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if(e.target.classList.contains('add-to-cart')) return;
+            
+            const imgSrc = card.querySelector('.product-image').src;
+            const title = card.querySelector('h3').innerText;
+            const price = card.querySelector('.price').innerText;
+            const category = card.querySelector('.category').innerText;
+            
+            const modalImg = document.querySelector('.modal-img');
+            const modalTitle = document.querySelector('.modal-title');
+            const modalPrice = document.querySelector('.modal-price');
+            const modalCategory = document.querySelector('.modal-category');
+
+            if(modalImg) modalImg.src = imgSrc;
+            if(modalTitle) modalTitle.innerText = title;
+            if(modalPrice) modalPrice.innerText = price;
+            if(modalCategory) modalCategory.innerText = category;
+            
+            lenis.stop(); 
+            
+            const tl = gsap.timeline();
+            tl.set('.product-modal', { display: 'flex' })
+              .fromTo('.product-modal', { clipPath: 'circle(0% at 50% 50%)' }, { clipPath: 'circle(150% at 50% 50%)', duration: 1.2, ease: 'power4.inOut' })
+              .fromTo('.modal-img', { scale: 1.5, filter: 'blur(20px)' }, { scale: 1, filter: 'blur(0px)', duration: 1.2, ease: 'expo.out' }, "-=0.6")
+              .fromTo(['.modal-category', '.modal-title', '.modal-price', '.modal-info button'], 
+                      { y: 60, opacity: 0, rotationX: 45 }, 
+                      { y: 0, opacity: 1, rotationX: 0, stagger: 0.1, duration: 1, ease: 'back.out(1.5)' }, "-=0.8");
+        });
+    });
+}
+
+// ✨ 3. EXECUTE FETCH
+loadProducts();
