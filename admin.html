@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VESTIGA | Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Admin Panel Basic Dark Theme */
+        :root { --bg-color: #050505; --surface: #111; --gold: #D4AF37; --text: #f0f0f0; }
+        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: var(--bg-color); color: var(--text); }
+        
+        /* Login Section */
+        #login-section { display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-box { background: var(--surface); padding: 40px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; border: 1px solid rgba(212, 175, 55, 0.2); }
+        .login-box h2 { color: var(--gold); margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: #aaa; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #333; background: #000; color: #fff; border-radius: 5px; box-sizing: border-box;}
+        button { width: 100%; padding: 12px; background: var(--gold); color: #000; border: none; border-radius: 5px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        button:hover { opacity: 0.8; }
+        
+        /* Dashboard Section (Hidden by Default) */
+        #dashboard-section { display: none; padding: 20px; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+        .admin-header h1 { color: var(--gold); margin: 0; }
+        .logout-btn { background: transparent; border: 1px solid var(--gold); color: var(--gold); width: auto; padding: 8px 15px; }
+        
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
+        .panel { background: var(--surface); padding: 25px; border-radius: 10px; border: 1px solid #222; }
+        .panel h3 { margin-top: 0; color: var(--gold); border-bottom: 1px solid #333; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="login-section">
+        <div class="login-box">
+            <h2>Admin Secure Login</h2>
+            <form id="admin-login-form">
+                <div class="form-group">
+                    <label>Email ID</label>
+                    <input type="email" id="aaju12328@gmail.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="Ajmalaju12-" required>
+                </div>
+                <p id="login-error" style="color: red; display: none; font-size: 0.8rem;"></p>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="dashboard-section">
+        <div class="admin-header">
+            <h1>VESTIGA Admin Dashboard</h1>
+            <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="panel">
+                <h3><i class="fa-solid fa-plus"></i> Add New Product</h3>
+                <form id="add-product-form">
+                    <div class="form-group">
+                        <label>Product Name</label>
+                        <input type="text" id="p-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="p-category" required>
+                            <option value="Watches">Watches</option>
+                            <option value="Footwear">Footwear</option>
+                            <option value="Accessories">Accessories</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Price (₹)</label>
+                        <input type="number" id="p-price" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Stock Quantity</label>
+                        <input type="number" id="p-stock" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="p-desc" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Product Image</label>
+                        <input type="file" id="p-image" accept="image/*" required>
+                    </div>
+                    <button type="submit" id="add-btn">Add Product</button>
+                </form>
+            </div>
+
+            <div class="panel">
+                <h3><i class="fa-solid fa-box"></i> Manage Products</h3>
+                <div id="admin-product-list">
+                    <p style="color: #888;">Loading products...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
