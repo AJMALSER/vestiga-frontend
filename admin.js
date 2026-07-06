@@ -1,24 +1,30 @@
 const API_URL = "https://vestiga-backend-3392.onrender.com/api";
 
 const loginSection = document.getElementById("login-section");
-const dashboardSection = document.getElementById("dashboard-section");
+const appLayout = document.getElementById("app-layout");
 const loginForm = document.getElementById("admin-login-form");
 const loginError = document.getElementById("login-error");
+const loginBtn = document.getElementById("login-btn");
+
+// Products Elements
 const addProductForm = document.getElementById("add-product-form");
 const addBtn = document.getElementById("add-btn");
 const productListContainer = document.getElementById("admin-product-list");
-
 let editingProductId = null; 
 
+// ✨ 1. AUTH LOGIC
 document.addEventListener("DOMContentLoaded", () => {
     const token = localStorage.getItem("adminToken");
     if (token) {
-        showDashboard();
+        showApp();
+    } else {
+        gsap.from(".login-box", { y: 50, opacity: 0, duration: 1, ease: "power3.out" });
     }
 });
 
 loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    loginBtn.innerText = "Authenticating...";
     
     const email = document.getElementById("login-email").value;
     const password = document.getElementById("login-password").value;
@@ -26,83 +32,124 @@ loginForm.addEventListener("submit", async (e) => {
     try {
         const response = await fetch(`${API_URL}/auth/login`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password })
         });
-
         const data = await response.json();
 
         if (response.ok && data.token) {
             localStorage.setItem("adminToken", data.token);
             loginError.style.display = "none";
             loginForm.reset();
-            showDashboard();
+            showApp();
         } else {
-            loginError.innerText = data.message || "Login failed. Check credentials.";
+            loginError.innerText = data.message || "Invalid credentials.";
             loginError.style.display = "block";
+            gsap.fromTo(".login-box", {x: -10}, {x: 10, duration: 0.1, yoyo: true, repeat: 5});
         }
     } catch (error) {
-        console.error("Login Error:", error);
-        loginError.innerText = "Network error. Please try again.";
+        loginError.innerText = "Network error. Backend might be down.";
         loginError.style.display = "block";
+    } finally {
+        loginBtn.innerText = "Authenticate";
     }
 });
 
-function showDashboard() {
+function showApp() {
     loginSection.style.display = "none";
-    dashboardSection.style.display = "block";
+    appLayout.style.display = "flex";
+    
+    gsap.from(".sidebar", { x: -200, opacity: 0, duration: 0.8, ease: "power3.out" });
+    gsap.from(".topbar", { y: -50, opacity: 0, duration: 0.8, ease: "power3.out", delay: 0.2 });
+    
+    initCharts();
+
+    // ✅ ADDED: Fetch products as soon as the app loads
     fetchAdminProducts();
 }
 
 function logoutAdmin() {
     localStorage.removeItem("adminToken");
-    dashboardSection.style.display = "none";
+    appLayout.style.display = "none";
     loginSection.style.display = "flex";
+    loginForm.reset();
 }
 
-// ✨ Corrected object destructuring & image URL mapping
+// ✨ 2. SPA ROUTING LOGIC
+document.querySelectorAll(".nav-item").forEach(item => {
+    item.addEventListener("click", (e) => {
+        e.preventDefault();
+
+        document.querySelectorAll(".nav-item").forEach(nav =>
+            nav.classList.remove("active")
+        );
+        item.classList.add("active");
+
+        document.querySelectorAll(".view-section").forEach(view =>
+            view.classList.remove("active")
+        );
+
+        const target = item.dataset.target;
+        document.getElementById(target).classList.add("active");
+
+        document.getElementById("current-page-title").innerText =
+            item.textContent.trim();
+
+        // Fetch products only if the Products tab is clicked again
+        if(target === 'view-products') {
+            fetchAdminProducts();
+        }
+    });
+});
+
+// ✨ 3. PRODUCT CRUD LOGIC
 async function fetchAdminProducts() {
-    productListContainer.innerHTML = '<p style="color: #888;">Loading products... ⏳</p>';
+    productListContainer.innerHTML = '<p style="color: var(--text-muted); text-align:center;">Fetching Masterpieces... ⏳</p>';
     
     try {
         const res = await fetch(`${API_URL}/products`);
-        const { products } = await res.json(); 
         
-        if (!products || products.length === 0) {
-            productListContainer.innerHTML = '<p style="color: #888;">No products found. Start adding some!</p>';
+        // ✅ ADDED: Safe JSON parsing and Array check
+        const data = await res.json(); 
+        console.log("Admin Fetch Data:", data);
+
+        const products = Array.isArray(data) 
+            ? data 
+            : (data.products || []); 
+        
+        if (products.length === 0) {
+            productListContainer.innerHTML = '<p style="color: var(--text-muted); text-align:center;">No products found. Start adding some!</p>';
             return;
         }
 
         productListContainer.innerHTML = products.map(product => {
             const imageUrl = product.images?.[0]?.url || product.image || '';
             return `
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #000; padding: 15px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #222;">
+            <div class="product-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; margin-bottom: 12px; border-radius: 8px; border: 1px solid var(--glass-border);">
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <img src="${imageUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
+                    <img src="${imageUrl}" style="width: 55px; height: 55px; object-fit: cover; border-radius: 6px; border: 1px solid var(--gold);">
                     <div>
-                        <h4 style="margin: 0; color: #D4AF37;">${product.name}</h4>
-                        <p style="margin: 5px 0 0; font-size: 0.85rem; color: #aaa;">₹${product.price} &middot; ${product.category} &middot; Stock: ${product.countInStock || 0}</p>
+                        <h4 style="margin: 0; color: var(--gold); font-family: 'Playfair Display'; font-size: 1.1rem;">${product.name}</h4>
+                        <p style="margin: 4px 0 0; font-size: 0.8rem; color: var(--text-muted);">₹${product.price} &middot; ${product.category} &middot; Stock: ${product.countInStock || 0}</p>
                     </div>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <button onclick="populateEditForm('${product._id}')" style="background: transparent; border: 1px solid #D4AF37; color: #D4AF37; padding: 8px 12px; width: auto; cursor: pointer;"><i class="fa-solid fa-pen"></i></button>
-                    <button onclick="deleteProduct('${product._id}')" style="background: transparent; border: 1px solid red; color: red; padding: 8px 12px; width: auto; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="populateEditForm('${product._id}')" style="background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); color: var(--gold); padding: 8px 12px; border-radius: 6px; cursor: pointer;"><i class="fa-solid fa-pen"></i></button>
+                    <button onclick="deleteProduct('${product._id}')" style="background: rgba(255, 71, 87, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 8px 12px; border-radius: 6px; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>
         `}).join('');
 
     } catch (error) {
         console.error("Error fetching products:", error);
-        productListContainer.innerHTML = '<p style="color: red;">Failed to load products. Check network.</p>';
+        productListContainer.innerHTML = '<p style="color: var(--danger); text-align:center;">Failed to load products. Check network.</p>';
     }
 }
 
 addProductForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     
-    addBtn.innerText = editingProductId ? "Updating Product... ⏳" : "Adding Product... ⏳";
+    addBtn.innerText = editingProductId ? "Updating... ⏳" : "Adding... ⏳";
     addBtn.disabled = true;
 
     const formData = new FormData();
@@ -110,6 +157,147 @@ addProductForm.addEventListener("submit", async (e) => {
     formData.append("category", document.getElementById("p-category").value);
     formData.append("price", document.getElementById("p-price").value);
     formData.append("countInStock", document.getElementById("p-stock").value); 
+    formData.append("description", document.getElementById("p-desc").value);
+    
+    const imageFile = document.getElementById("p-image").files[0];
+    if (imageFile) {
+        formData.append("images", imageFile); 
+    }
+
+    try {
+        const token = localStorage.getItem("adminToken");
+        
+        const url = editingProductId 
+            ? `${API_URL}/products/${editingProductId}` 
+            : `${API_URL}/products/with-images`;
+            
+        const method = editingProductId ? "PUT" : "POST";
+
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                "Authorization": `Bearer ${token}` 
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(editingProductId ? "Masterpiece Updated! 🎉" : "Masterpiece Added! 🎉");
+            
+            addProductForm.reset();
+            editingProductId = null;
+            addBtn.innerText = "Add Product";
+            document.getElementById("p-image").required = true; 
+            
+            fetchAdminProducts(); 
+        } else {
+            alert(`Error: ${data.message || "Failed to save"}`);
+        }
+    } catch (error) {
+        alert("Network error. Backend might be down.");
+    } finally {
+        if (!editingProductId) addBtn.innerText = "Add Product";
+        addBtn.disabled = false;
+    }
+});
+
+async function deleteProduct(id) {
+    if (!confirm("Delete this Masterpiece forever? 🗑️")) return;
+
+    try {
+        const token = localStorage.getItem("adminToken");
+        const response = await fetch(`${API_URL}/products/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            fetchAdminProducts(); 
+        } else {
+            alert("Failed to delete");
+        }
+    } catch (error) {
+        alert("Network error.");
+    }
+}
+
+async function populateEditForm(id) {
+    try {
+        const res = await fetch(`${API_URL}/products/${id}`);
+        const data = await res.json();
+        
+        const product = data.product || data; 
+
+        document.getElementById("p-name").value = product.name;
+        document.getElementById("p-category").value = product.category;
+        document.getElementById("p-price").value = product.price;
+        document.getElementById("p-stock").value = product.countInStock || 0; 
+        document.getElementById("p-desc").value = product.description;
+        
+        document.getElementById("p-image").required = false; 
+
+        editingProductId = product._id; 
+        addBtn.innerText = "Update Masterpiece";
+        
+        document.querySelector('.content-area').scrollTo({ top: 0, behavior: 'smooth' }); 
+    } catch (error) {
+        alert("Failed to load product details.");
+    }
+}
+
+// ✨ 4. CHARTS INIT
+let chartsInitialized = false;
+function initCharts() {
+    if(chartsInitialized) return;
+    chartsInitialized = true;
+
+    const revCtx = document.getElementById('revenueChart');
+    if(!revCtx) return; 
+    
+    new Chart(revCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'Revenue (₹)',
+                data: [150000, 280000, 210000, 420000, 390000, 550000],
+                borderColor: '#D4AF37',
+                backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                borderWidth: 2, fill: true, tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
+                x: { grid: { display: false }, ticks: { color: '#888' } }
+            }
+        }
+    });
+
+    const catCtx = document.getElementById('categoryChart');
+    if(!catCtx) return;
+
+    new Chart(catCtx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Watches', 'Footwear', 'Accessories'],
+            datasets: [{
+                data: [65, 25, 10],
+                backgroundColor: ['#D4AF37', '#fff', '#555'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } },
+            cutout: '75%'
+        }
+    });
+}
     formData.append("description", document.getElementById("p-desc").value);
     
     const imageFile = document.getElementById("p-image").files[0];
