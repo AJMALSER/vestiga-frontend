@@ -64,7 +64,7 @@ function showApp() {
     
     initCharts();
 
-    // ✅ ADDED: Fetch products as soon as the app loads
+    // Fetch products as soon as the app loads
     fetchAdminProducts();
 }
 
@@ -109,7 +109,6 @@ async function fetchAdminProducts() {
     try {
         const res = await fetch(`${API_URL}/products`);
         
-        // ✅ ADDED: Safe JSON parsing and Array check
         const data = await res.json(); 
         console.log("Admin Fetch Data:", data);
 
@@ -297,97 +296,4 @@ function initCharts() {
             cutout: '75%'
         }
     });
-}
-    formData.append("description", document.getElementById("p-desc").value);
-    
-    const imageFile = document.getElementById("p-image").files[0];
-    if (imageFile) {
-        formData.append("images", imageFile); 
-    }
-
-    try {
-        const token = localStorage.getItem("adminToken");
-        
-        const url = editingProductId 
-            ? `${API_URL}/products/${editingProductId}` 
-            : `${API_URL}/products/with-images`;
-            
-        const method = editingProductId ? "PUT" : "POST";
-
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                "Authorization": `Bearer ${token}` 
-            },
-            body: formData
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            alert(editingProductId ? "Product Updated Successfully! 🎉" : "Product Added Successfully! 🎉");
-            
-            addProductForm.reset();
-            editingProductId = null;
-            addBtn.innerText = "Add Product";
-            document.getElementById("p-image").required = true; 
-            
-            fetchAdminProducts(); 
-        } else {
-            alert(`Error: ${data.message || "Failed to save product"}`);
-        }
-    } catch (error) {
-        console.error("Save Product Error:", error);
-        alert("Network error. Backend might be down.");
-    } finally {
-        if (!editingProductId) addBtn.innerText = "Add Product";
-        addBtn.disabled = false;
-    }
-});
-
-async function deleteProduct(id) {
-    if (!confirm("Are you sure you want to delete this masterpiece? 🗑️")) return;
-
-    try {
-        const token = localStorage.getItem("adminToken");
-        const response = await fetch(`${API_URL}/products/${id}`, {
-            method: "DELETE",
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
-        });
-
-        if (response.ok) {
-            fetchAdminProducts(); 
-        } else {
-            const data = await response.json();
-            alert(`Error: ${data.message || "Failed to delete"}`);
-        }
-    } catch (error) {
-        console.error("Delete Error:", error);
-        alert("Network error.");
-    }
-}
-
-async function populateEditForm(id) {
-    try {
-        const res = await fetch(`${API_URL}/products/${id}`);
-        const product = await res.json();
-
-        document.getElementById("p-name").value = product.name;
-        document.getElementById("p-category").value = product.category;
-        document.getElementById("p-price").value = product.price;
-        document.getElementById("p-stock").value = product.countInStock || 0; 
-        document.getElementById("p-desc").value = product.description;
-        
-        document.getElementById("p-image").required = false; 
-
-        editingProductId = product._id; 
-        addBtn.innerText = "Update Product";
-        
-        window.scrollTo({ top: 0, behavior: 'smooth' }); 
-    } catch (error) {
-        console.error("Fetch Product Error:", error);
-        alert("Failed to load product details.");
-    }
 }
