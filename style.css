@@ -1,0 +1,198 @@
+/* ✨ Luxury Dark Theme Variables - CRITICAL FOR STYLING */
+:root {
+    --bg-color: #050505;
+    --surface-color: #0A0A0A;
+    --gold-solid: #D4AF37;
+    --gold-grad: linear-gradient(135deg, #F9D976 0%, #E1B854 50%, #B98728 100%);
+    --white: #F0F0F0;
+    --muted: #888888;
+    --glass-bg: rgba(5, 5, 5, 0.5);
+    --glass-border: rgba(212, 175, 55, 0.15);
+    --font-head: 'Playfair Display', serif;
+    --font-body: 'Inter', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
+
+body {
+    background-color: var(--bg-color);
+    color: var(--white);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+}
+
+/* ✨ Scroll Progress Bar */
+.scroll-progress {
+    position: fixed;
+    top: 0; left: 0;
+    width: 0%; height: 2px;
+    background: var(--gold-grad);
+    z-index: 10001;
+}
+
+/* ✨ Mouse Spotlight Effect */
+.spotlight {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: radial-gradient(circle 600px at var(--x, 50vw) var(--y, 50vh), rgba(212, 175, 55, 0.03), transparent 80%);
+    pointer-events: none;
+    z-index: 999;
+}
+
+/* ✨ Floating Particles */
+#particles {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    pointer-events: none; z-index: 0;
+}
+.particle {
+    position: absolute;
+    background: var(--gold-solid);
+    border-radius: 50%;
+    opacity: 0.2;
+}
+
+/* ✨ Luxury Page Transition Loader */
+.luxury-loader {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+    z-index: 10000; display: flex; justify-content: center; align-items: center;
+}
+.loader-overlay-1, .loader-overlay-2 {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: #000; z-index: 1;
+}
+.loader-overlay-2 { background: var(--surface-color); z-index: 2; }
+.loader-content {
+    z-index: 3; text-align: center;
+}
+.loader-brand { 
+    font-family: var(--font-head); 
+    font-size: 4rem; 
+    color: var(--gold-solid);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+}
+.loader-counter { margin-top: 10px; font-family: var(--font-body); letter-spacing: 0.2em; }
+
+/* Custom Cursor */
+.cursor { width: 6px; height: 6px; background: var(--gold-solid); border-radius: 50%; position: fixed; pointer-events: none; z-index: 9999; transform: translate(-50%, -50%); }
+.cursor-follower { width: 40px; height: 40px; border: 1px solid rgba(212,175,55,0.4); border-radius: 50%; position: fixed; pointer-events: none; z-index: 9998; transform: translate(-50%, -50%); transition: width 0.3s, height 0.3s; }
+
+/* ✨ Glassmorphism Navbar */
+.glass-navbar {
+    position: fixed; top: 0; width: 100%; display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 5%; background: var(--glass-bg);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+    z-index: 1000;
+}
+.nav-left, .nav-right { display: flex; gap: 30px; align-items: center; }
+.nav-link { text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.15em; text-decoration: none; color: var(--white); }
+.brand-logo { font-family: var(--font-head); font-size: 1.8rem; letter-spacing: 0.2em; color: var(--gold-solid); text-decoration: none;}
+.nav-icon { color: var(--white); font-size: 1.2rem; position: relative; }
+.cart-count { position: absolute; top: -8px; right: -12px; background: var(--gold-solid); color: #000; font-size: 0.7rem; font-weight: 700; width: 18px; height: 18px; display: flex; justify-content: center; align-items: center; border-radius: 50%; }
+
+/* Video Hero */
+.hero { 
+    position: relative; height: 100vh; display: flex; align-items: center; 
+    justify-content: center; text-align: center; overflow: hidden;
+    background-color: var(--bg-color); /* Fallback for slow video loading */
+}
+.hero-video-wrapper { position: absolute; top: 0; left: 0; width: 100%; height: 120%; z-index: -1; }
+.hero-video { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
+.hero-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, transparent, var(--bg-color)); }
+.hero-content { z-index: 1; }
+
+/* Split Text Title - 3D Perspective Added */
+.title { 
+    font-family: var(--font-head); 
+    font-size: 5.5rem; 
+    line-height: 1.1; 
+    margin: 20px 0 40px; 
+    perspective: 1000px;
+}
+.char { display: inline-block; }
+
+/* ✨ Gold Gradient Button */
+.btn-gold-grad {
+    display: inline-block; padding: 16px 40px; border-radius: 30px;
+    background: var(--gold-grad); color: #000; text-transform: uppercase;
+    letter-spacing: 0.1em; font-size: 0.85rem; font-weight: 600; text-decoration: none;
+    border: none; box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+    transition: transform 0.3s;
+}
+
+/* ✨ Infinite Marquee */
+.marquee-container {
+    width: 100%; padding: 30px 0; background: var(--surface-color); border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border);
+    overflow: hidden; white-space: nowrap; position: relative; display: flex;
+}
+.marquee-track { display: flex; width: max-content; animation: marqueeScroll 20s linear infinite; }
+.marquee-content { display: flex; align-items: center; gap: 40px; padding-right: 40px; font-family: var(--font-head); font-size: 1.5rem; color: var(--muted); }
+@keyframes marqueeScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+/* Grid & ✨ Premium Hover Glow */
+.trending { padding: 120px 5%; }
+.section-header h2 { font-family: var(--font-head); font-size: 3rem; margin-bottom: 10px; font-weight: 400; }
+.product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 40px; margin-top: 60px; }
+
+.product-card { background: var(--surface-color); border-radius: 12px; padding: 15px; transition: box-shadow 0.4s ease, transform 0.4s ease; border: 1px solid transparent; cursor: pointer; }
+.hover-glow:hover { border-color: rgba(212, 175, 55, 0.3); box-shadow: 0 0 40px rgba(212, 175, 55, 0.1); transform: translateY(-5px); }
+
+/* ✨ Image Reveal Setup - Initial State */
+.reveal-target .product-img-wrapper { 
+    overflow: hidden; 
+    border-radius: 8px; 
+    clip-path: polygon(0 0, 100% 0, 100% 0, 0 0); /* Fixed starting point */
+}
+.product-img-wrapper img { width: 100%; height: 400px; object-fit: cover; }
+
+.product-info { padding-top: 20px; }
+.category { font-size: 0.75rem; color: var(--gold-solid); text-transform: uppercase; letter-spacing: 0.2em; }
+.product-info h3 { font-family: var(--font-head); font-size: 1.8rem; margin: 10px 0; font-weight: 400;}
+.price-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
+.add-to-cart { background: none; border: 1px solid var(--glass-border); color: var(--white); padding: 8px 20px; border-radius: 20px; font-family: var(--font-body); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.75rem; transition: background 0.3s; }
+.add-to-cart:hover { background: var(--white); color: #000; }
+
+/* ✨ Cart Fly Animation Element */
+.flying-item {
+    position: fixed; z-index: 100000; border-radius: 50%; object-fit: cover;
+    pointer-events: none; transition: all 0.8s cubic-bezier(0.2, 1, 0.3, 1);
+}
+
+/* ✨ Cart Drawer Styling */
+#cart-drawer {
+    position: fixed; top: 0; right: -400px; width: 400px; height: 100vh;
+    background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(20px);
+    border-left: 1px solid var(--glass-border); z-index: 100000;
+    padding: 30px; display: flex; flex-direction: column;
+    transition: right 0.6s cubic-bezier(0.77, 0, 0.175, 1);
+}
+#cart-drawer.open { right: 0; }
+.cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+.cart-header h2 { font-family: var(--font-head); color: var(--gold-solid); font-weight: 400; }
+#close-cart { background: none; border: none; color: var(--white); font-size: 1.5rem; }
+.cart-items { flex-grow: 1; overflow-y: auto; }
+.empty-cart-msg { color: var(--muted); font-size: 0.9rem; text-align: center; margin-top: 50px; }
+.w-100 { width: 100%; text-align: center; }
+.cart-item-ui { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;}
+.cart-item-ui img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; }
+.cart-item-ui h4 { font-family: var(--font-head); font-weight: 400; font-size: 1rem; }
+.cart-item-ui .price { color: var(--gold-solid); font-size: 0.8rem; margin-top: 5px; }
+
+/* ✨ Extreme Product Reveal Modal */
+.product-modal {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: #050505; z-index: 100001; display: none; 
+    align-items: center; padding: 5%;
+}
+.modal-close {
+    position: absolute; top: 40px; right: 40px; font-size: 2rem; 
+    color: var(--white); z-index: 10; 
+}
+.modal-content { display: flex; gap: 60px; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto;}
+.modal-img-container { flex: 1; height: 70vh; border-radius: 20px; overflow: hidden; }
+.modal-img { width: 100%; height: 100%; object-fit: cover; }
+.modal-info { flex: 1; }
+.modal-title { font-family: var(--font-head); font-size: 4.5rem; font-weight: 400; line-height: 1.1; margin: 15px 0 30px; }
+.modal-price { font-size: 2rem; color: var(--gold-solid); margin-bottom: 40px; font-family: var(--font-head); }
+.mt-20 { margin-top: 20px; }
