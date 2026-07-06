@@ -1,6 +1,5 @@
 const API_URL = "https://vestiga-backend-3392.onrender.com/api";
 
-// DOM Elements
 const loginSection = document.getElementById("login-section");
 const dashboardSection = document.getElementById("dashboard-section");
 const loginForm = document.getElementById("admin-login-form");
@@ -9,10 +8,8 @@ const addProductForm = document.getElementById("add-product-form");
 const addBtn = document.getElementById("add-btn");
 const productListContainer = document.getElementById("admin-product-list");
 
-// Edit ചെയ്യാൻ ഏത് product ആണ് സെലക്ട് ചെയ്തത് എന്ന് ട്രാക്ക് ചെയ്യാൻ
 let editingProductId = null; 
 
-// 1. Check if Admin is already logged in when page loads
 document.addEventListener("DOMContentLoaded", () => {
     const token = localStorage.getItem("adminToken");
     if (token) {
@@ -20,7 +17,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-// 2. Handle Admin Login
 loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     
@@ -54,7 +50,6 @@ loginForm.addEventListener("submit", async (e) => {
     }
 });
 
-// 3. UI Toggle Functions
 function showDashboard() {
     loginSection.style.display = "none";
     dashboardSection.style.display = "block";
@@ -67,34 +62,36 @@ function logoutAdmin() {
     loginSection.style.display = "flex";
 }
 
-// 4. Fetch & View Products
+// ✨ Corrected object destructuring & image URL mapping
 async function fetchAdminProducts() {
     productListContainer.innerHTML = '<p style="color: #888;">Loading products... ⏳</p>';
     
     try {
         const res = await fetch(`${API_URL}/products`);
-        const products = await res.json();
+        const { products } = await res.json(); 
         
-        if (products.length === 0) {
+        if (!products || products.length === 0) {
             productListContainer.innerHTML = '<p style="color: #888;">No products found. Start adding some!</p>';
             return;
         }
 
-        productListContainer.innerHTML = products.map(product => `
+        productListContainer.innerHTML = products.map(product => {
+            const imageUrl = product.images?.[0]?.url || product.image || '';
+            return `
             <div style="display: flex; justify-content: space-between; align-items: center; background: #000; padding: 15px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #222;">
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <img src="${product.images?.[0] || product.image || ''}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
+                    <img src="${imageUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
                     <div>
                         <h4 style="margin: 0; color: #D4AF37;">${product.name}</h4>
                         <p style="margin: 5px 0 0; font-size: 0.85rem; color: #aaa;">₹${product.price} &middot; ${product.category} &middot; Stock: ${product.countInStock || 0}</p>
                     </div>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <button onclick="populateEditForm('${product._id}')" style="background: transparent; border: 1px solid #D4AF37; color: #D4AF37; padding: 8px 12px; width: auto;"><i class="fa-solid fa-pen"></i></button>
-                    <button onclick="deleteProduct('${product._id}')" style="background: transparent; border: 1px solid red; color: red; padding: 8px 12px; width: auto;"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="populateEditForm('${product._id}')" style="background: transparent; border: 1px solid #D4AF37; color: #D4AF37; padding: 8px 12px; width: auto; cursor: pointer;"><i class="fa-solid fa-pen"></i></button>
+                    <button onclick="deleteProduct('${product._id}')" style="background: transparent; border: 1px solid red; color: red; padding: 8px 12px; width: auto; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
 
     } catch (error) {
         console.error("Error fetching products:", error);
@@ -102,7 +99,6 @@ async function fetchAdminProducts() {
     }
 }
 
-// 5. Add OR Edit Product
 addProductForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     
@@ -113,21 +109,17 @@ addProductForm.addEventListener("submit", async (e) => {
     formData.append("name", document.getElementById("p-name").value);
     formData.append("category", document.getElementById("p-category").value);
     formData.append("price", document.getElementById("p-price").value);
-    
-    // Corrected to "countInStock"
     formData.append("countInStock", document.getElementById("p-stock").value); 
     formData.append("description", document.getElementById("p-desc").value);
     
     const imageFile = document.getElementById("p-image").files[0];
     if (imageFile) {
-        // Corrected to "images"
         formData.append("images", imageFile); 
     }
 
     try {
         const token = localStorage.getItem("adminToken");
         
-        // Corrected Route Logic
         const url = editingProductId 
             ? `${API_URL}/products/${editingProductId}` 
             : `${API_URL}/products/with-images`;
@@ -165,7 +157,6 @@ addProductForm.addEventListener("submit", async (e) => {
     }
 });
 
-// 6. Delete Product
 async function deleteProduct(id) {
     if (!confirm("Are you sure you want to delete this masterpiece? 🗑️")) return;
 
@@ -190,7 +181,6 @@ async function deleteProduct(id) {
     }
 }
 
-// 7. Load Data into Form for Editing
 async function populateEditForm(id) {
     try {
         const res = await fetch(`${API_URL}/products/${id}`);
@@ -199,7 +189,6 @@ async function populateEditForm(id) {
         document.getElementById("p-name").value = product.name;
         document.getElementById("p-category").value = product.category;
         document.getElementById("p-price").value = product.price;
-        // Map to countInStock if available
         document.getElementById("p-stock").value = product.countInStock || 0; 
         document.getElementById("p-desc").value = product.description;
         
