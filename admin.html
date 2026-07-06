@@ -1,108 +1,297 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VESTIGA | Admin Panel</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Admin Panel Basic Dark Theme */
-        :root { --bg-color: #050505; --surface: #111; --gold: #D4AF37; --text: #f0f0f0; }
-        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: var(--bg-color); color: var(--text); }
-        
-        /* Login Section */
-        #login-section { display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .login-box { background: var(--surface); padding: 40px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; border: 1px solid rgba(212, 175, 55, 0.2); }
-        .login-box h2 { color: var(--gold); margin-bottom: 20px; }
-        .form-group { margin-bottom: 15px; text-align: left; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: #aaa; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #333; background: #000; color: #fff; border-radius: 5px; box-sizing: border-box;}
-        button { width: 100%; padding: 12px; background: var(--gold); color: #000; border: none; border-radius: 5px; font-weight: 600; cursor: pointer; transition: 0.3s; }
-        button:hover { opacity: 0.8; }
-        
-        /* Dashboard Section (Hidden by Default) */
-        #dashboard-section { display: none; padding: 20px; }
-        .admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
-        .admin-header h1 { color: var(--gold); margin: 0; }
-        .logout-btn { background: transparent; border: 1px solid var(--gold); color: var(--gold); width: auto; padding: 8px 15px; }
-        
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
-        .panel { background: var(--surface); padding: 25px; border-radius: 10px; border: 1px solid #222; }
-        .panel h3 { margin-top: 0; color: var(--gold); border-bottom: 1px solid #333; padding-bottom: 10px; }
-    </style>
-</head>
-<body>
+const API_URL = "https://vestiga-backend-3392.onrender.com/api";
 
-    <div id="login-section">
-        <div class="login-box">
-            <h2>Admin Secure Login</h2>
-            <form id="admin-login-form">
-                <div class="form-group">
-                    <label>Email ID</label>
-                    <input type="email" id="login-email" required>
+const loginSection = document.getElementById("login-section");
+const appLayout = document.getElementById("app-layout");
+const loginForm = document.getElementById("admin-login-form");
+const loginError = document.getElementById("login-error");
+const loginBtn = document.getElementById("login-btn");
+
+// Products Elements
+const addProductForm = document.getElementById("add-product-form");
+const addBtn = document.getElementById("add-btn");
+const productListContainer = document.getElementById("admin-product-list");
+let editingProductId = null; 
+
+// ✨ 1. AUTH LOGIC
+document.addEventListener("DOMContentLoaded", () => {
+    const token = localStorage.getItem("adminToken");
+    if (token) {
+        showApp();
+    } else {
+        gsap.from(".login-box", { y: 50, opacity: 0, duration: 1, ease: "power3.out" });
+    }
+});
+
+loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    loginBtn.innerText = "Authenticating...";
+    
+    const email = document.getElementById("login-email").value;
+    const password = document.getElementById("login-password").value;
+    
+    try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await response.json();
+
+        if (response.ok && data.token) {
+            localStorage.setItem("adminToken", data.token);
+            loginError.style.display = "none";
+            showApp();
+        } else {
+            loginError.innerText = data.message || "Invalid credentials.";
+            loginError.style.display = "block";
+            gsap.fromTo(".login-box", {x: -10}, {x: 10, duration: 0.1, yoyo: true, repeat: 5});
+        }
+    } catch (error) {
+        loginError.innerText = "Network error. Backend might be down.";
+        loginError.style.display = "block";
+    } finally {
+        loginBtn.innerText = "Authenticate";
+    }
+});
+
+function showApp() {
+    loginSection.style.display = "none";
+    appLayout.style.display = "flex";
+    
+    gsap.from(".sidebar", { x: -200, opacity: 0, duration: 0.8, ease: "power3.out" });
+    gsap.from(".topbar", { y: -50, opacity: 0, duration: 0.8, ease: "power3.out", delay: 0.2 });
+    
+    initCharts();
+}
+
+function logoutAdmin() {
+    localStorage.removeItem("adminToken");
+    appLayout.style.display = "none";
+    loginSection.style.display = "flex";
+    loginForm.reset();
+}
+
+// ✨ 2. SPA ROUTING LOGIC (നിങ്ങൾ നൽകിയ പുതിയ കോഡ്)
+// Sidebar Navigation
+document.querySelectorAll(".nav-item").forEach(item => {
+    item.addEventListener("click", (e) => {
+        e.preventDefault();
+
+        // Remove active class from all nav items
+        document.querySelectorAll(".nav-item").forEach(nav =>
+            nav.classList.remove("active")
+        );
+        item.classList.add("active");
+
+        // Hide all view sections
+        document.querySelectorAll(".view-section").forEach(view =>
+            view.classList.remove("active")
+        );
+
+        // Show the targeted section
+        const target = item.dataset.target;
+        document.getElementById(target).classList.add("active");
+
+        // Update Page Title
+        document.getElementById("current-page-title").innerText =
+            item.textContent.trim();
+
+        // ⚠️ പ്രത്യേകം ചേർത്തത്: Products ടാബിൽ ക്ലിക്ക് ചെയ്താൽ ഡാറ്റ ലോഡ് ചെയ്യാൻ
+        if(target === 'view-products') {
+            fetchAdminProducts();
+        }
+    });
+});
+
+// ✨ 3. PRODUCT CRUD LOGIC
+async function fetchAdminProducts() {
+    productListContainer.innerHTML = '<p style="color: var(--text-muted); text-align:center;">Fetching Masterpieces... ⏳</p>';
+    
+    try {
+        const res = await fetch(`${API_URL}/products`);
+        const data = await res.json(); 
+        const products = data.products || []; 
+        
+        if (products.length === 0) {
+            productListContainer.innerHTML = '<p style="color: var(--text-muted); text-align:center;">No products found. Start adding some!</p>';
+            return;
+        }
+
+        productListContainer.innerHTML = products.map(product => {
+            const imageUrl = product.images?.[0]?.url || product.image || '';
+            return `
+            <div class="product-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; margin-bottom: 12px; border-radius: 8px; border: 1px solid var(--glass-border);">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <img src="${imageUrl}" style="width: 55px; height: 55px; object-fit: cover; border-radius: 6px; border: 1px solid var(--gold);">
+                    <div>
+                        <h4 style="margin: 0; color: var(--gold); font-family: 'Playfair Display'; font-size: 1.1rem;">${product.name}</h4>
+                        <p style="margin: 4px 0 0; font-size: 0.8rem; color: var(--text-muted);">₹${product.price} &middot; ${product.category} &middot; Stock: ${product.countInStock || 0}</p>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="login-password" required>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="populateEditForm('${product._id}')" style="background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); color: var(--gold); padding: 8px 12px; border-radius: 6px; cursor: pointer;"><i class="fa-solid fa-pen"></i></button>
+                    <button onclick="deleteProduct('${product._id}')" style="background: rgba(255, 71, 87, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 8px 12px; border-radius: 6px; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
                 </div>
-                <p id="login-error" style="color: red; display: none; font-size: 0.8rem;"></p>
-                <button type="submit">Login</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="dashboard-section">
-        <div class="admin-header">
-            <h1>VESTIGA Admin Dashboard</h1>
-            <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
-        </div>
-
-        <div class="dashboard-grid">
-            <div class="panel">
-                <h3><i class="fa-solid fa-plus"></i> Add/Edit Product</h3>
-                <form id="add-product-form">
-                    <div class="form-group">
-                        <label>Product Name</label>
-                        <input type="text" id="p-name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Category</label>
-                        <select id="p-category" required>
-                            <option value="Watches">Watches</option>
-                            <option value="Footwear">Footwear</option>
-                            <option value="Accessories">Accessories</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Price (₹)</label>
-                        <input type="number" id="p-price" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Stock Quantity</label>
-                        <input type="number" id="p-stock" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Description</label>
-                        <textarea id="p-desc" rows="3" required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Product Image</label>
-                        <input type="file" id="p-image" accept="image/*" required>
-                    </div>
-                    <button type="submit" id="add-btn">Add Product</button>
-                </form>
             </div>
+        `}).join('');
 
-            <div class="panel">
-                <h3><i class="fa-solid fa-box"></i> Manage Products</h3>
-                <div id="admin-product-list">
-                    <p style="color: #888;">Loading products...</p>
-                </div>
-            </div>
-        </div>
-    </div>
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        productListContainer.innerHTML = '<p style="color: var(--danger); text-align:center;">Failed to load products. Check network.</p>';
+    }
+}
 
-    <script src="admin.js"></script>
-</body>
-</html>
+addProductForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    addBtn.innerText = editingProductId ? "Updating... ⏳" : "Adding... ⏳";
+    addBtn.disabled = true;
+
+    const formData = new FormData();
+    formData.append("name", document.getElementById("p-name").value);
+    formData.append("category", document.getElementById("p-category").value);
+    formData.append("price", document.getElementById("p-price").value);
+    formData.append("countInStock", document.getElementById("p-stock").value); 
+    formData.append("description", document.getElementById("p-desc").value);
+    
+    const imageFile = document.getElementById("p-image").files[0];
+    if (imageFile) {
+        formData.append("images", imageFile); 
+    }
+
+    try {
+        const token = localStorage.getItem("adminToken");
+        
+        const url = editingProductId 
+            ? `${API_URL}/products/${editingProductId}` 
+            : `${API_URL}/products/with-images`;
+            
+        const method = editingProductId ? "PUT" : "POST";
+
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                "Authorization": `Bearer ${token}` 
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(editingProductId ? "Masterpiece Updated! 🎉" : "Masterpiece Added! 🎉");
+            
+            addProductForm.reset();
+            editingProductId = null;
+            addBtn.innerText = "Add Product";
+            document.getElementById("p-image").required = true; 
+            
+            fetchAdminProducts(); 
+        } else {
+            alert(`Error: ${data.message || "Failed to save"}`);
+        }
+    } catch (error) {
+        alert("Network error. Backend might be down.");
+    } finally {
+        if (!editingProductId) addBtn.innerText = "Add Product";
+        addBtn.disabled = false;
+    }
+});
+
+async function deleteProduct(id) {
+    if (!confirm("Delete this Masterpiece forever? 🗑️")) return;
+
+    try {
+        const token = localStorage.getItem("adminToken");
+        const response = await fetch(`${API_URL}/products/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            fetchAdminProducts(); 
+        } else {
+            alert("Failed to delete");
+        }
+    } catch (error) {
+        alert("Network error.");
+    }
+}
+
+async function populateEditForm(id) {
+    try {
+        const res = await fetch(`${API_URL}/products/${id}`);
+        const data = await res.json();
+        
+        // Handle case where product is inside 'product' object based on backend response
+        const product = data.product || data; 
+
+        document.getElementById("p-name").value = product.name;
+        document.getElementById("p-category").value = product.category;
+        document.getElementById("p-price").value = product.price;
+        document.getElementById("p-stock").value = product.countInStock || 0; 
+        document.getElementById("p-desc").value = product.description;
+        
+        document.getElementById("p-image").required = false; 
+
+        editingProductId = product._id; 
+        addBtn.innerText = "Update Masterpiece";
+        
+        // Scroll to form smoothly
+        document.querySelector('.content-area').scrollTo({ top: 0, behavior: 'smooth' }); 
+    } catch (error) {
+        alert("Failed to load product details.");
+    }
+}
+
+// ✨ 4. CHARTS INIT
+let chartsInitialized = false;
+function initCharts() {
+    if(chartsInitialized) return;
+    chartsInitialized = true;
+
+    const revCtx = document.getElementById('revenueChart');
+    if(!revCtx) return; // Prevent error if canvas is missing
+    
+    new Chart(revCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'Revenue (₹)',
+                data: [150000, 280000, 210000, 420000, 390000, 550000],
+                borderColor: '#D4AF37',
+                backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                borderWidth: 2, fill: true, tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
+                x: { grid: { display: false }, ticks: { color: '#888' } }
+            }
+        }
+    });
+
+    const catCtx = document.getElementById('categoryChart');
+    if(!catCtx) return;
+
+    new Chart(catCtx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Watches', 'Footwear', 'Accessories'],
+            datasets: [{
+                data: [65, 25, 10],
+                backgroundColor: ['#D4AF37', '#fff', '#555'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } },
+            cutout: '75%'
+        }
+    });
+}
