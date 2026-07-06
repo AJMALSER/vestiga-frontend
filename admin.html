@@ -1,297 +1,201 @@
-const API_URL = "https://vestiga-backend-3392.onrender.com/api";
-
-const loginSection = document.getElementById("login-section");
-const appLayout = document.getElementById("app-layout");
-const loginForm = document.getElementById("admin-login-form");
-const loginError = document.getElementById("login-error");
-const loginBtn = document.getElementById("login-btn");
-
-// Products Elements
-const addProductForm = document.getElementById("add-product-form");
-const addBtn = document.getElementById("add-btn");
-const productListContainer = document.getElementById("admin-product-list");
-let editingProductId = null; 
-
-// ✨ 1. AUTH LOGIC
-document.addEventListener("DOMContentLoaded", () => {
-    const token = localStorage.getItem("adminToken");
-    if (token) {
-        showApp();
-    } else {
-        gsap.from(".login-box", { y: 50, opacity: 0, duration: 1, ease: "power3.out" });
-    }
-});
-
-loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    loginBtn.innerText = "Authenticating...";
-    
-    const email = document.getElementById("login-email").value;
-    const password = document.getElementById("login-password").value;
-    
-    try {
-        const response = await fetch(`${API_URL}/auth/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
-        });
-        const data = await response.json();
-
-        if (response.ok && data.token) {
-            localStorage.setItem("adminToken", data.token);
-            loginError.style.display = "none";
-            showApp();
-        } else {
-            loginError.innerText = data.message || "Invalid credentials.";
-            loginError.style.display = "block";
-            gsap.fromTo(".login-box", {x: -10}, {x: 10, duration: 0.1, yoyo: true, repeat: 5});
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VESTIGA | Admin Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ✨ Ultra Premium Dark Glass Theme */
+        :root { 
+            --bg-dark: #030303; 
+            --surface: rgba(15, 15, 15, 0.7); 
+            --gold: #D4AF37; 
+            --gold-grad: linear-gradient(135deg, #F9D976 0%, #E1B854 50%, #B98728 100%);
+            --text-main: #F0F0F0; 
+            --text-muted: #888888;
+            --glass-border: rgba(212, 175, 55, 0.15);
+            --danger: #ff4757;
+            --success: #2ed573;
         }
-    } catch (error) {
-        loginError.innerText = "Network error. Backend might be down.";
-        loginError.style.display = "block";
-    } finally {
-        loginBtn.innerText = "Authenticate";
-    }
-});
-
-function showApp() {
-    loginSection.style.display = "none";
-    appLayout.style.display = "flex";
-    
-    gsap.from(".sidebar", { x: -200, opacity: 0, duration: 0.8, ease: "power3.out" });
-    gsap.from(".topbar", { y: -50, opacity: 0, duration: 0.8, ease: "power3.out", delay: 0.2 });
-    
-    initCharts();
-}
-
-function logoutAdmin() {
-    localStorage.removeItem("adminToken");
-    appLayout.style.display = "none";
-    loginSection.style.display = "flex";
-    loginForm.reset();
-}
-
-// ✨ 2. SPA ROUTING LOGIC (നിങ്ങൾ നൽകിയ പുതിയ കോഡ്)
-// Sidebar Navigation
-document.querySelectorAll(".nav-item").forEach(item => {
-    item.addEventListener("click", (e) => {
-        e.preventDefault();
-
-        // Remove active class from all nav items
-        document.querySelectorAll(".nav-item").forEach(nav =>
-            nav.classList.remove("active")
-        );
-        item.classList.add("active");
-
-        // Hide all view sections
-        document.querySelectorAll(".view-section").forEach(view =>
-            view.classList.remove("active")
-        );
-
-        // Show the targeted section
-        const target = item.dataset.target;
-        document.getElementById(target).classList.add("active");
-
-        // Update Page Title
-        document.getElementById("current-page-title").innerText =
-            item.textContent.trim();
-
-        // ⚠️ പ്രത്യേകം ചേർത്തത്: Products ടാബിൽ ക്ലിക്ക് ചെയ്താൽ ഡാറ്റ ലോഡ് ചെയ്യാൻ
-        if(target === 'view-products') {
-            fetchAdminProducts();
-        }
-    });
-});
-
-// ✨ 3. PRODUCT CRUD LOGIC
-async function fetchAdminProducts() {
-    productListContainer.innerHTML = '<p style="color: var(--text-muted); text-align:center;">Fetching Masterpieces... ⏳</p>';
-    
-    try {
-        const res = await fetch(`${API_URL}/products`);
-        const data = await res.json(); 
-        const products = data.products || []; 
         
-        if (products.length === 0) {
-            productListContainer.innerHTML = '<p style="color: var(--text-muted); text-align:center;">No products found. Start adding some!</p>';
-            return;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-dark); color: var(--text-main); overflow: hidden; }
+        
+        h1, h2, h3 { font-family: 'Playfair Display', serif; font-weight: 400; color: var(--gold); }
+        
+        /* Login Screen */
+        #login-section { display: flex; justify-content: center; align-items: center; height: 100vh; background: radial-gradient(circle at center, #111, #000); z-index: 9999; position: relative; }
+        .glass-panel { background: var(--surface); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 16px; }
+        .login-box { padding: 50px; width: 100%; max-width: 420px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .login-box h2 { font-size: 2.5rem; letter-spacing: 2px; margin-bottom: 30px; }
+        
+        /* Form Elements */
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 15px; background: rgba(0,0,0,0.5); border: 1px solid #333; color: white; border-radius: 8px; font-family: 'Inter'; transition: border 0.3s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--gold); outline: none; }
+        .btn-gold { width: 100%; padding: 14px; background: var(--gold-grad); color: #000; border: none; border-radius: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(212, 175, 55, 0.2); }
+        .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        productListContainer.innerHTML = products.map(product => {
-            const imageUrl = product.images?.[0]?.url || product.image || '';
-            return `
-            <div class="product-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; margin-bottom: 12px; border-radius: 8px; border: 1px solid var(--glass-border);">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <img src="${imageUrl}" style="width: 55px; height: 55px; object-fit: cover; border-radius: 6px; border: 1px solid var(--gold);">
-                    <div>
-                        <h4 style="margin: 0; color: var(--gold); font-family: 'Playfair Display'; font-size: 1.1rem;">${product.name}</h4>
-                        <p style="margin: 4px 0 0; font-size: 0.8rem; color: var(--text-muted);">₹${product.price} &middot; ${product.category} &middot; Stock: ${product.countInStock || 0}</p>
+        /* Dashboard Layout */
+        #app-layout { display: none; height: 100vh; width: 100vw; }
+        .sidebar { width: 280px; height: 100vh; border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; padding: 30px 0; background: var(--surface); }
+        .brand-logo { text-align: center; font-family: 'Playfair Display'; font-size: 2rem; color: var(--gold); letter-spacing: 4px; margin-bottom: 40px; }
+        .nav-menu { flex-grow: 1; overflow-y: auto; padding: 0 20px; }
+        .nav-item { display: flex; align-items: center; gap: 15px; padding: 12px 20px; color: var(--text-muted); text-decoration: none; border-radius: 8px; margin-bottom: 5px; transition: all 0.3s; font-size: 0.95rem; }
+        .nav-item i { width: 20px; text-align: center; }
+        .nav-item:hover, .nav-item.active { background: rgba(212, 175, 55, 0.1); color: var(--gold); }
+        
+        .main-wrapper { flex-grow: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: radial-gradient(circle at top right, rgba(212,175,55,0.05), transparent 40%); }
+        .topbar { height: 80px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; padding: 0 40px; }
+        .topbar-right { display: flex; align-items: center; gap: 20px; }
+        .content-area { padding: 40px; overflow-y: auto; flex-grow: 1; }
+        
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+        
+        /* Dashboard Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 25px; margin-bottom: 40px; }
+        .stat-card { padding: 25px; border-radius: 12px; border-left: 3px solid var(--gold); display: flex; flex-direction: column; gap: 10px; }
+        .stat-card .title { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-card .value { font-size: 2.2rem; font-family: 'Playfair Display'; }
+        .stat-card .trend.positive { color: var(--success); font-size: 0.85rem; }
+        .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-bottom: 40px; }
+        .chart-container { padding: 25px; border-radius: 12px; height: 400px; }
+
+        /* ✨ Modules Grid (For Products, etc) */
+        .module-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
+        .product-item { transition: background 0.3s; }
+        .product-item:hover { background: rgba(212, 175, 55, 0.05) !important; }
+    </style>
+</head>
+<body>
+
+    <div id="login-section">
+        <div class="login-box glass-panel">
+            <h2>VESTIGA</h2>
+            <form id="admin-login-form">
+                <div class="form-group">
+                    <label>Admin Email</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                <div class="form-group">
+                    <label>Secure Password</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <p id="login-error" style="color: var(--danger); display: none; font-size: 0.8rem; margin-bottom: 15px;"></p>
+                <button type="submit" class="btn-gold" id="login-btn">Authenticate</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-layout">
+        <aside class="sidebar">
+            <div class="brand-logo">VESTIGA</div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-target="view-dashboard"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+                <a href="#" class="nav-item" data-target="view-products"><i class="fa-solid fa-gem"></i> Masterpieces</a>
+                <a href="#" class="nav-item" data-target="view-orders"><i class="fa-solid fa-box-open"></i> Orders</a>
+                <a href="#" class="nav-item" data-target="view-customers"><i class="fa-solid fa-users"></i> Clientele</a>
+                <a href="#" class="nav-item" data-target="view-offers"><i class="fa-solid fa-tag"></i> Offers & Coupons</a>
+                <a href="#" class="nav-item" data-target="view-settings"><i class="fa-solid fa-gear"></i> Settings</a>
+            </nav>
+        </aside>
+
+        <main class="main-wrapper">
+            <header class="topbar">
+                <h2 id="current-page-title">Overview</h2>
+                <div class="topbar-right">
+                    <span><i class="fa-regular fa-bell"></i></span>
+                    <button onclick="logoutAdmin()" style="background:none; border:none; color:var(--gold); cursor:pointer;"><i class="fa-solid fa-power-off"></i> Logout</button>
+                </div>
+            </header>
+
+            <div class="content-area">
+                
+                <section id="view-dashboard" class="view-section active">
+                    <div class="stats-grid">
+                        <div class="stat-card glass-panel">
+                            <span class="title">Total Revenue</span><span class="value">₹ 24,50,000</span><span class="trend positive">+14% this month</span>
+                        </div>
+                        <div class="stat-card glass-panel">
+                            <span class="title">Active Orders</span><span class="value">142</span><span class="trend positive">12 to ship today</span>
+                        </div>
+                        <div class="stat-card glass-panel">
+                            <span class="title">Total Products</span><span class="value">85</span>
+                        </div>
                     </div>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="populateEditForm('${product._id}')" style="background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); color: var(--gold); padding: 8px 12px; border-radius: 6px; cursor: pointer;"><i class="fa-solid fa-pen"></i></button>
-                    <button onclick="deleteProduct('${product._id}')" style="background: rgba(255, 71, 87, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 8px 12px; border-radius: 6px; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
-                </div>
+                    <div class="charts-grid">
+                        <div class="chart-container glass-panel"><canvas id="revenueChart"></canvas></div>
+                        <div class="chart-container glass-panel"><canvas id="categoryChart"></canvas></div>
+                    </div>
+                </section>
+
+                <section id="view-products" class="view-section">
+                    <div class="module-grid">
+                        
+                        <div class="glass-panel" style="padding: 25px; height: fit-content;">
+                            <h3><i class="fa-solid fa-plus"></i> Add Masterpiece</h3>
+                            <form id="add-product-form" style="margin-top: 20px;">
+                                <div class="form-group">
+                                    <label>Product Name</label>
+                                    <input type="text" id="p-name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Category</label>
+                                    <select id="p-category" required>
+                                        <option value="Watches">Watches</option>
+                                        <option value="Footwear">Footwear</option>
+                                        <option value="Accessories">Accessories</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Price (₹)</label>
+                                    <input type="number" id="p-price" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Stock Quantity</label>
+                                    <input type="number" id="p-stock" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Description</label>
+                                    <textarea id="p-desc" rows="3" required></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Product Image</label>
+                                    <input type="file" id="p-image" accept="image/*" required style="padding: 10px 0; border: none; background: transparent;">
+                                </div>
+                                <button type="submit" class="btn-gold" id="add-btn">Add Product</button>
+                            </form>
+                        </div>
+
+                        <div class="glass-panel" style="padding: 25px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <h3><i class="fa-solid fa-box"></i> Inventory</h3>
+                                <button onclick="fetchAdminProducts()" style="background:transparent; border:none; color:var(--gold); cursor:pointer;"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+                            </div>
+                            <div id="admin-product-list" style="max-height: 600px; overflow-y: auto; padding-right: 10px;">
+                                <p style="color: var(--text-muted);">Loading products... ⏳</p>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <section id="view-orders" class="view-section"><div class="glass-panel" style="padding: 30px;"><h3>Orders Coming Soon...</h3></div></section>
+                <section id="view-customers" class="view-section"><div class="glass-panel" style="padding: 30px;"><h3>Customers Coming Soon...</h3></div></section>
+                <section id="view-offers" class="view-section"><div class="glass-panel" style="padding: 30px;"><h3>Offers Coming Soon...</h3></div></section>
+                <section id="view-settings" class="view-section"><div class="glass-panel" style="padding: 30px;"><h3>Settings Coming Soon...</h3></div></section>
+
             </div>
-        `}).join('');
+        </main>
+    </div>
 
-    } catch (error) {
-        console.error("Error fetching products:", error);
-        productListContainer.innerHTML = '<p style="color: var(--danger); text-align:center;">Failed to load products. Check network.</p>';
-    }
-}
-
-addProductForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    
-    addBtn.innerText = editingProductId ? "Updating... ⏳" : "Adding... ⏳";
-    addBtn.disabled = true;
-
-    const formData = new FormData();
-    formData.append("name", document.getElementById("p-name").value);
-    formData.append("category", document.getElementById("p-category").value);
-    formData.append("price", document.getElementById("p-price").value);
-    formData.append("countInStock", document.getElementById("p-stock").value); 
-    formData.append("description", document.getElementById("p-desc").value);
-    
-    const imageFile = document.getElementById("p-image").files[0];
-    if (imageFile) {
-        formData.append("images", imageFile); 
-    }
-
-    try {
-        const token = localStorage.getItem("adminToken");
-        
-        const url = editingProductId 
-            ? `${API_URL}/products/${editingProductId}` 
-            : `${API_URL}/products/with-images`;
-            
-        const method = editingProductId ? "PUT" : "POST";
-
-        const response = await fetch(url, {
-            method: method,
-            headers: {
-                "Authorization": `Bearer ${token}` 
-            },
-            body: formData
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            alert(editingProductId ? "Masterpiece Updated! 🎉" : "Masterpiece Added! 🎉");
-            
-            addProductForm.reset();
-            editingProductId = null;
-            addBtn.innerText = "Add Product";
-            document.getElementById("p-image").required = true; 
-            
-            fetchAdminProducts(); 
-        } else {
-            alert(`Error: ${data.message || "Failed to save"}`);
-        }
-    } catch (error) {
-        alert("Network error. Backend might be down.");
-    } finally {
-        if (!editingProductId) addBtn.innerText = "Add Product";
-        addBtn.disabled = false;
-    }
-});
-
-async function deleteProduct(id) {
-    if (!confirm("Delete this Masterpiece forever? 🗑️")) return;
-
-    try {
-        const token = localStorage.getItem("adminToken");
-        const response = await fetch(`${API_URL}/products/${id}`, {
-            method: "DELETE",
-            headers: { "Authorization": `Bearer ${token}` }
-        });
-
-        if (response.ok) {
-            fetchAdminProducts(); 
-        } else {
-            alert("Failed to delete");
-        }
-    } catch (error) {
-        alert("Network error.");
-    }
-}
-
-async function populateEditForm(id) {
-    try {
-        const res = await fetch(`${API_URL}/products/${id}`);
-        const data = await res.json();
-        
-        // Handle case where product is inside 'product' object based on backend response
-        const product = data.product || data; 
-
-        document.getElementById("p-name").value = product.name;
-        document.getElementById("p-category").value = product.category;
-        document.getElementById("p-price").value = product.price;
-        document.getElementById("p-stock").value = product.countInStock || 0; 
-        document.getElementById("p-desc").value = product.description;
-        
-        document.getElementById("p-image").required = false; 
-
-        editingProductId = product._id; 
-        addBtn.innerText = "Update Masterpiece";
-        
-        // Scroll to form smoothly
-        document.querySelector('.content-area').scrollTo({ top: 0, behavior: 'smooth' }); 
-    } catch (error) {
-        alert("Failed to load product details.");
-    }
-}
-
-// ✨ 4. CHARTS INIT
-let chartsInitialized = false;
-function initCharts() {
-    if(chartsInitialized) return;
-    chartsInitialized = true;
-
-    const revCtx = document.getElementById('revenueChart');
-    if(!revCtx) return; // Prevent error if canvas is missing
-    
-    new Chart(revCtx.getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            datasets: [{
-                label: 'Revenue (₹)',
-                data: [150000, 280000, 210000, 420000, 390000, 550000],
-                borderColor: '#D4AF37',
-                backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                borderWidth: 2, fill: true, tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
-                x: { grid: { display: false }, ticks: { color: '#888' } }
-            }
-        }
-    });
-
-    const catCtx = document.getElementById('categoryChart');
-    if(!catCtx) return;
-
-    new Chart(catCtx.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-            labels: ['Watches', 'Footwear', 'Accessories'],
-            datasets: [{
-                data: [65, 25, 10],
-                backgroundColor: ['#D4AF37', '#fff', '#555'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } },
-            cutout: '75%'
-        }
-    });
-}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
