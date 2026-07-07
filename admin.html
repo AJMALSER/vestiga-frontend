@@ -50,9 +50,12 @@
         
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 25px; margin-bottom: 40px; }
         .stat-card { padding: 25px; border-radius: 12px; border-left: 3px solid var(--gold); display: flex; flex-direction: column; gap: 10px; }
-        .stat-card .title { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-        .stat-card .value { font-size: 2.2rem; font-family: 'Playfair Display'; }
-        .stat-card .trend.positive { color: var(--success); font-size: 0.85rem; }
+        
+        /* ✅ FIXED: Classes renamed to avoid collision with style.css */
+        .stat-card .admin-stat-title { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-card .admin-stat-value { font-size: 2.2rem; font-family: 'Playfair Display'; }
+        .stat-card .admin-stat-trend.positive { color: var(--success); font-size: 0.85rem; }
+        
         .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-bottom: 40px; }
         .chart-container { padding: 25px; border-radius: 12px; height: 400px; }
         .module-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 30px; }
@@ -66,6 +69,7 @@
         .status-shipped { background: rgba(52, 152, 219, 0.1); color: #3498db; border: 1px solid #3498db; }
         .status-delivered { background: rgba(46, 213, 115, 0.1); color: var(--success); border: 1px solid var(--success); }
 
+        /* Mobile View Fixes */
         @media (max-width: 1024px) { .charts-grid, .module-grid { grid-template-columns: 1fr; } }
         @media (max-width: 768px) {
             #app-layout { flex-direction: column; }
@@ -118,9 +122,9 @@
                 
                 <section id="view-dashboard" class="view-section active">
                     <div class="stats-grid">
-                        <div class="stat-card glass-panel"><span class="title">Total Revenue</span><span class="value" id="dash-revenue">₹ 0</span><span class="trend positive">Live API Data</span></div>
-                        <div class="stat-card glass-panel"><span class="title">Active Orders</span><span class="value" id="dash-orders">0</span><span class="trend positive">Pending fulfillment</span></div>
-                        <div class="stat-card glass-panel"><span class="title">Total Products</span><span class="value" id="dash-products">0</span></div>
+                        <div class="stat-card glass-panel"><span class="admin-stat-title">Total Revenue</span><span class="admin-stat-value" id="dash-revenue">₹ 0</span><span class="admin-stat-trend positive">Live API Data</span></div>
+                        <div class="stat-card glass-panel"><span class="admin-stat-title">Active Orders</span><span class="admin-stat-value" id="dash-orders">0</span><span class="admin-stat-trend positive">Pending fulfillment</span></div>
+                        <div class="stat-card glass-panel"><span class="admin-stat-title">Total Products</span><span class="admin-stat-value" id="dash-products">0</span></div>
                     </div>
                     <div class="charts-grid">
                         <div class="chart-container glass-panel"><canvas id="revenueChart"></canvas></div>
