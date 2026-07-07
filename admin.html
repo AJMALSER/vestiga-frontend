@@ -51,7 +51,6 @@
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 25px; margin-bottom: 40px; }
         .stat-card { padding: 25px; border-radius: 12px; border-left: 3px solid var(--gold); display: flex; flex-direction: column; gap: 10px; }
         
-        /* ✅ FIXED: Classes renamed to avoid collision with style.css */
         .stat-card .admin-stat-title { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
         .stat-card .admin-stat-value { font-size: 2.2rem; font-family: 'Playfair Display'; }
         .stat-card .admin-stat-trend.positive { color: var(--success); font-size: 0.85rem; }
@@ -182,8 +181,62 @@
                     </div>
                 </section>
 
-                <section id="view-customers" class="view-section"><div class="glass-panel" style="padding: 30px;"><h3>Customers API Integration Coming Next...</h3></div></section>
-                <section id="view-offers" class="view-section"><div class="glass-panel" style="padding: 30px;"><h3>Offers API Integration Coming Next...</h3></div></section>
+                <section id="view-customers" class="view-section">
+                    <div class="glass-panel" style="padding: 25px; overflow-x: auto;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3><i class="fa-solid fa-users"></i> Clientele Management</h3>
+                            <button onclick="fetchAdminCustomers()" style="background:transparent; border:none; color:var(--gold); cursor:pointer;"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+                        </div>
+                        <table class="premium-table">
+                            <thead>
+                                <tr>
+                                    <th>Client ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-customers-list">
+                                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Loading clientele... ⏳</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="view-offers" class="view-section">
+                    <div class="module-grid">
+                        <div class="glass-panel" style="padding: 25px; height: fit-content;">
+                            <h3><i class="fa-solid fa-plus"></i> Create Coupon</h3>
+                            <form id="add-offer-form" style="margin-top: 20px;">
+                                <div class="form-group">
+                                    <label>Coupon Code</label>
+                                    <input type="text" id="o-code" placeholder="e.g. LUXURY20" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Discount Percentage (%)</label>
+                                    <input type="number" id="o-discount" placeholder="e.g. 20" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Expiry Date</label>
+                                    <input type="date" id="o-expiry" required style="color-scheme: dark;">
+                                </div>
+                                <button type="submit" class="btn-gold" id="add-offer-btn">Create Coupon</button>
+                            </form>
+                        </div>
+                        
+                        <div class="glass-panel" style="padding: 25px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <h3><i class="fa-solid fa-tag"></i> Active Coupons</h3>
+                                <button onclick="fetchAdminOffers()" style="background:transparent; border:none; color:var(--gold); cursor:pointer;"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+                            </div>
+                            <div id="admin-offers-list" style="max-height: 600px; overflow-y: auto; padding-right: 10px;">
+                                <p style="color: var(--text-muted);">Loading offers... ⏳</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <section id="view-settings" class="view-section"><div class="glass-panel" style="padding: 30px;"><h3>Settings API Integration Coming Next...</h3></div></section>
 
             </div>
