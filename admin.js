@@ -6,7 +6,6 @@ const loginForm = document.getElementById("admin-login-form");
 const loginError = document.getElementById("login-error");
 const loginBtn = document.getElementById("login-btn");
 
-// Products Elements
 const addProductForm = document.getElementById("add-product-form");
 const addBtn = document.getElementById("add-btn");
 const productListContainer = document.getElementById("admin-product-list");
@@ -35,21 +34,20 @@ loginForm.addEventListener("submit", async (e) => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password })
         });
+        
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         const data = await response.json();
 
-        if (response.ok && data.token) {
+        if (data.token) {
             localStorage.setItem("adminToken", data.token);
             loginError.style.display = "none";
             loginForm.reset();
             showApp();
-        } else {
-            loginError.innerText = data.message || "Invalid credentials.";
-            loginError.style.display = "block";
-            gsap.fromTo(".login-box", {x: -10}, {x: 10, duration: 0.1, yoyo: true, repeat: 5});
         }
     } catch (error) {
-        loginError.innerText = "Network error. Backend might be down.";
+        loginError.innerText = "Authentication failed or network error.";
         loginError.style.display = "block";
+        gsap.fromTo(".login-box", {x: -10}, {x: 10, duration: 0.1, yoyo: true, repeat: 5});
     } finally {
         loginBtn.innerText = "Authenticate";
     }
@@ -58,14 +56,11 @@ loginForm.addEventListener("submit", async (e) => {
 function showApp() {
     loginSection.style.display = "none";
     appLayout.style.display = "flex";
-    
     gsap.from(".sidebar", { x: -200, opacity: 0, duration: 0.8, ease: "power3.out" });
     gsap.from(".topbar", { y: -50, opacity: 0, duration: 0.8, ease: "power3.out", delay: 0.2 });
     
+    fetchDashboardStats();
     initCharts();
-
-    // Fetch products as soon as the app loads
-    fetchAdminProducts();
 }
 
 function logoutAdmin() {
@@ -75,49 +70,36 @@ function logoutAdmin() {
     loginForm.reset();
 }
 
-// ✨ 2. SPA ROUTING LOGIC
+// ✨ 2. SPA ROUTING
 document.querySelectorAll(".nav-item").forEach(item => {
     item.addEventListener("click", (e) => {
         e.preventDefault();
-
-        document.querySelectorAll(".nav-item").forEach(nav =>
-            nav.classList.remove("active")
-        );
+        document.querySelectorAll(".nav-item").forEach(nav => nav.classList.remove("active"));
         item.classList.add("active");
 
-        document.querySelectorAll(".view-section").forEach(view =>
-            view.classList.remove("active")
-        );
-
+        document.querySelectorAll(".view-section").forEach(view => view.classList.remove("active"));
         const target = item.dataset.target;
         document.getElementById(target).classList.add("active");
+        document.getElementById("current-page-title").innerText = item.textContent.trim();
 
-        document.getElementById("current-page-title").innerText =
-            item.textContent.trim();
-
-        // Fetch products only if the Products tab is clicked again
-        if(target === 'view-products') {
-            fetchAdminProducts();
-        }
+        if(target === 'view-products') fetchAdminProducts();
+        if(target === 'view-orders') fetchAdminOrders();
+        if(target === 'view-dashboard') fetchDashboardStats();
     });
 });
 
-// ✨ 3. PRODUCT CRUD LOGIC
+// ✨ 3. PRODUCTS CRUD (With Error Handling)
 async function fetchAdminProducts() {
     productListContainer.innerHTML = '<p style="color: var(--text-muted); text-align:center;">Fetching Masterpieces... ⏳</p>';
-    
     try {
         const res = await fetch(`${API_URL}/products`);
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
         
         const data = await res.json(); 
-        console.log("Admin Fetch Data:", data);
-
-        const products = Array.isArray(data) 
-            ? data 
-            : (data.products || []); 
+        const products = Array.isArray(data) ? data : (data.products || []); 
         
         if (products.length === 0) {
-            productListContainer.innerHTML = '<p style="color: var(--text-muted); text-align:center;">No products found. Start adding some!</p>';
+            productListContainer.innerHTML = '<p style="color: var(--text-muted); text-align:center;">No products found.</p>';
             return;
         }
 
@@ -136,18 +118,16 @@ async function fetchAdminProducts() {
                     <button onclick="populateEditForm('${product._id}')" style="background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); color: var(--gold); padding: 8px 12px; border-radius: 6px; cursor: pointer;"><i class="fa-solid fa-pen"></i></button>
                     <button onclick="deleteProduct('${product._id}')" style="background: rgba(255, 71, 87, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 8px 12px; border-radius: 6px; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
                 </div>
-            </div>
-        `}).join('');
+            </div>`}).join('');
 
     } catch (error) {
-        console.error("Error fetching products:", error);
-        productListContainer.innerHTML = '<p style="color: var(--danger); text-align:center;">Failed to load products. Check network.</p>';
+        console.error("Products Fetch Error:", error);
+        productListContainer.innerHTML = '<p style="color: var(--danger); text-align:center;">Failed to load products.</p>';
     }
 }
 
 addProductForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    
     addBtn.innerText = editingProductId ? "Updating... ⏳" : "Adding... ⏳";
     addBtn.disabled = true;
 
@@ -159,43 +139,31 @@ addProductForm.addEventListener("submit", async (e) => {
     formData.append("description", document.getElementById("p-desc").value);
     
     const imageFile = document.getElementById("p-image").files[0];
-    if (imageFile) {
-        formData.append("images", imageFile); 
-    }
+    if (imageFile) formData.append("images", imageFile); 
 
     try {
         const token = localStorage.getItem("adminToken");
-        
-        const url = editingProductId 
-            ? `${API_URL}/products/${editingProductId}` 
-            : `${API_URL}/products/with-images`;
-            
+        const url = editingProductId ? `${API_URL}/products/${editingProductId}` : `${API_URL}/products/with-images`;
         const method = editingProductId ? "PUT" : "POST";
 
         const response = await fetch(url, {
             method: method,
-            headers: {
-                "Authorization": `Bearer ${token}` 
-            },
+            headers: { "Authorization": `Bearer ${token}` },
             body: formData
         });
 
-        const data = await response.json();
-
-        if (response.ok) {
-            alert(editingProductId ? "Masterpiece Updated! 🎉" : "Masterpiece Added! 🎉");
-            
-            addProductForm.reset();
-            editingProductId = null;
-            addBtn.innerText = "Add Product";
-            document.getElementById("p-image").required = true; 
-            
-            fetchAdminProducts(); 
-        } else {
-            alert(`Error: ${data.message || "Failed to save"}`);
-        }
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        
+        alert(editingProductId ? "Masterpiece Updated! 🎉" : "Masterpiece Added! 🎉");
+        addProductForm.reset();
+        editingProductId = null;
+        addBtn.innerText = "Add Product";
+        document.getElementById("p-image").required = true; 
+        fetchAdminProducts(); 
+        
     } catch (error) {
-        alert("Network error. Backend might be down.");
+        console.error("Save Error:", error);
+        alert("Failed to save product.");
     } finally {
         if (!editingProductId) addBtn.innerText = "Add Product";
         addBtn.disabled = false;
@@ -204,7 +172,6 @@ addProductForm.addEventListener("submit", async (e) => {
 
 async function deleteProduct(id) {
     if (!confirm("Delete this Masterpiece forever? 🗑️")) return;
-
     try {
         const token = localStorage.getItem("adminToken");
         const response = await fetch(`${API_URL}/products/${id}`, {
@@ -212,21 +179,19 @@ async function deleteProduct(id) {
             headers: { "Authorization": `Bearer ${token}` }
         });
 
-        if (response.ok) {
-            fetchAdminProducts(); 
-        } else {
-            alert("Failed to delete");
-        }
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        fetchAdminProducts(); 
     } catch (error) {
-        alert("Network error.");
+        alert("Failed to delete product.");
     }
 }
 
 async function populateEditForm(id) {
     try {
         const res = await fetch(`${API_URL}/products/${id}`);
-        const data = await res.json();
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
         
+        const data = await res.json();
         const product = data.product || data; 
 
         document.getElementById("p-name").value = product.name;
@@ -234,66 +199,122 @@ async function populateEditForm(id) {
         document.getElementById("p-price").value = product.price;
         document.getElementById("p-stock").value = product.countInStock || 0; 
         document.getElementById("p-desc").value = product.description;
-        
         document.getElementById("p-image").required = false; 
 
         editingProductId = product._id; 
         addBtn.innerText = "Update Masterpiece";
-        
         document.querySelector('.content-area').scrollTo({ top: 0, behavior: 'smooth' }); 
     } catch (error) {
         alert("Failed to load product details.");
     }
 }
 
-// ✨ 4. CHARTS INIT
+// ✨ 4. ORDERS MANAGEMENT (NEW)
+async function fetchAdminOrders() {
+    const list = document.getElementById("admin-orders-list");
+    list.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Fetching orders... ⏳</td></tr>';
+    
+    try {
+        const token = localStorage.getItem("adminToken");
+        const res = await fetch(`${API_URL}/orders`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        const data = await res.json();
+        const orders = Array.isArray(data) ? data : (data.orders || []);
+
+        if (orders.length === 0) {
+            list.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No orders received yet.</td></tr>';
+            return;
+        }
+
+        list.innerHTML = orders.map(order => `
+            <tr>
+                <td style="font-family: monospace; color: var(--gold);">#${order._id.substring(0,8)}</td>
+                <td>${order.user ? order.user.name : 'Guest User'}</td>
+                <td>${new Date(order.createdAt).toLocaleDateString()}</td>
+                <td>₹${order.totalPrice}</td>
+                <td><span class="status-badge status-${order.status ? order.status.toLowerCase() : 'pending'}">${order.status || 'Pending'}</span></td>
+                <td>
+                    <select onchange="updateOrderStatus('${order._id}', this.value)" style="background: #000; color: var(--gold); border: 1px solid var(--gold); padding: 5px; border-radius: 4px;">
+                        <option value="" disabled selected>Update</option>
+                        <option value="Shipped">Ship Order</option>
+                        <option value="Delivered">Mark Delivered</option>
+                    </select>
+                </td>
+            </tr>
+        `).join('');
+
+    } catch (error) {
+        console.error("Fetch Orders Error:", error);
+        list.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--danger);">Failed to load orders. API might not be ready.</td></tr>';
+    }
+}
+
+async function updateOrderStatus(orderId, newStatus) {
+    try {
+        const token = localStorage.getItem("adminToken");
+        const res = await fetch(`${API_URL}/orders/${orderId}/status`, {
+            method: "PUT",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}` 
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        fetchAdminOrders(); // Refresh table
+    } catch (error) {
+        alert("Failed to update status. Ensure backend route exists.");
+    }
+}
+
+// ✨ 5. DASHBOARD & CHARTS
+async function fetchDashboardStats() {
+    try {
+        // Here we attempt to fetch live stats. 
+        const res = await fetch(`${API_URL}/products`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const productsCount = Array.isArray(data) ? data.length : (data.products ? data.products.length : 0);
+        
+        document.getElementById("dash-products").innerText = productsCount;
+        
+        // Similarly, fetch orders count when backend route is ready
+        // const orderRes = await fetch(`${API_URL}/orders/summary`...
+    } catch(err) {
+        console.log("Dashboard stats fetch failed", err);
+    }
+}
+
 let chartsInitialized = false;
 function initCharts() {
     if(chartsInitialized) return;
     chartsInitialized = true;
 
     const revCtx = document.getElementById('revenueChart');
-    if(!revCtx) return; 
-    
-    new Chart(revCtx.getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-            datasets: [{
-                label: 'Revenue (₹)',
-                data: [150000, 280000, 210000, 420000, 390000, 550000],
-                borderColor: '#D4AF37',
-                backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                borderWidth: 2, fill: true, tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
-                x: { grid: { display: false }, ticks: { color: '#888' } }
-            }
-        }
-    });
+    if(revCtx) {
+        new Chart(revCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{ label: 'Revenue (₹)', data: [150000, 280000, 210000, 420000, 390000, 550000], borderColor: '#D4AF37', backgroundColor: 'rgba(212, 175, 55, 0.1)', borderWidth: 2, fill: true, tension: 0.4 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } }, x: { grid: { display: false }, ticks: { color: '#888' } } } }
+        });
+    }
 
     const catCtx = document.getElementById('categoryChart');
-    if(!catCtx) return;
-
-    new Chart(catCtx.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-            labels: ['Watches', 'Footwear', 'Accessories'],
-            datasets: [{
-                data: [65, 25, 10],
-                backgroundColor: ['#D4AF37', '#fff', '#555'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } },
-            cutout: '75%'
-        }
-    });
+    if(catCtx) {
+        new Chart(catCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Watches', 'Footwear', 'Accessories'],
+                datasets: [{ data: [65, 25, 10], backgroundColor: ['#D4AF37', '#fff', '#555'], borderWidth: 0 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } }, cutout: '75%' }
+        });
+    }
 }
