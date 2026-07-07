@@ -85,6 +85,9 @@ document.querySelectorAll(".nav-item").forEach(item => {
         if(target === 'view-products') fetchAdminProducts();
         if(target === 'view-orders') fetchAdminOrders();
         if(target === 'view-dashboard') fetchDashboardStats();
+        // Added Customers and Offers routing
+        if(target === 'view-customers') fetchAdminCustomers();
+        if(target === 'view-offers') fetchAdminOffers();
     });
 });
 
@@ -209,7 +212,7 @@ async function populateEditForm(id) {
     }
 }
 
-// ✨ 4. ORDERS MANAGEMENT (NEW)
+// ✨ 4. ORDERS MANAGEMENT
 async function fetchAdminOrders() {
     const list = document.getElementById("admin-orders-list");
     list.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Fetching orders... ⏳</td></tr>';
@@ -265,7 +268,7 @@ async function updateOrderStatus(orderId, newStatus) {
         });
 
         if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-        fetchAdminOrders(); // Refresh table
+        fetchAdminOrders(); 
     } catch (error) {
         alert("Failed to update status. Ensure backend route exists.");
     }
@@ -274,16 +277,12 @@ async function updateOrderStatus(orderId, newStatus) {
 // ✨ 5. DASHBOARD & CHARTS
 async function fetchDashboardStats() {
     try {
-        // Here we attempt to fetch live stats. 
         const res = await fetch(`${API_URL}/products`);
         if (!res.ok) return;
         const data = await res.json();
         const productsCount = Array.isArray(data) ? data.length : (data.products ? data.products.length : 0);
         
         document.getElementById("dash-products").innerText = productsCount;
-        
-        // Similarly, fetch orders count when backend route is ready
-        // const orderRes = await fetch(`${API_URL}/orders/summary`...
     } catch(err) {
         console.log("Dashboard stats fetch failed", err);
     }
@@ -316,5 +315,153 @@ function initCharts() {
             },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } }, cutout: '75%' }
         });
+    }
+}
+
+// ✨ 6. CUSTOMERS (CLIENTELE) MANAGEMENT
+async function fetchAdminCustomers() {
+    const list = document.getElementById("admin-customers-list");
+    if (!list) return;
+    list.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Fetching VIPs... ⏳</td></tr>';
+    
+    try {
+        const token = localStorage.getItem("adminToken");
+        const res = await fetch(`${API_URL}/users`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        const data = await res.json();
+        const customers = Array.isArray(data) ? data : (data.users || []);
+
+        if (customers.length === 0) {
+            list.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No clients registered yet.</td></tr>';
+            return;
+        }
+
+        list.innerHTML = customers.map(user => `
+            <tr>
+                <td style="font-family: monospace; color: var(--text-muted);">#${user._id.substring(0,8)}</td>
+                <td style="color: var(--gold); font-weight: 500;">${user.name}</td>
+                <td>${user.email}</td>
+                <td><span class="status-badge" style="background: ${user.isAdmin ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255,255,255,0.05)'}; color: ${user.isAdmin ? 'var(--gold)' : '#aaa'}; border: 1px solid ${user.isAdmin ? 'var(--gold)' : '#333'};">${user.isAdmin ? 'Admin' : 'Customer'}</span></td>
+                <td>
+                    <button onclick="deleteCustomer('${user._id}')" style="background: rgba(255, 71, 87, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 5px 10px; border-radius: 6px; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        `).join('');
+
+    } catch (error) {
+        console.error("Fetch Customers Error:", error);
+        list.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger);">API Route /users might not be ready yet.</td></tr>';
+    }
+}
+
+async function deleteCustomer(id) {
+    if (!confirm("Are you sure you want to remove this client? 🛑")) return;
+    try {
+        const token = localStorage.getItem("adminToken");
+        const res = await fetch(`${API_URL}/users/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        fetchAdminCustomers(); 
+    } catch (error) {
+        alert("Failed to delete customer.");
+    }
+}
+
+// ✨ 7. OFFERS & COUPONS MANAGEMENT
+const addOfferForm = document.getElementById("add-offer-form");
+
+async function fetchAdminOffers() {
+    const listContainer = document.getElementById("admin-offers-list");
+    if (!listContainer) return;
+    listContainer.innerHTML = '<p style="color: var(--text-muted); text-align:center;">Loading coupons... ⏳</p>';
+    
+    try {
+        const token = localStorage.getItem("adminToken");
+        const res = await fetch(`${API_URL}/coupons`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        const data = await res.json();
+        const coupons = Array.isArray(data) ? data : (data.coupons || []);
+
+        if (coupons.length === 0) {
+            listContainer.innerHTML = '<p style="color: var(--text-muted); text-align:center;">No active coupons.</p>';
+            return;
+        }
+
+        listContainer.innerHTML = coupons.map(coupon => `
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; margin-bottom: 12px; border-radius: 8px; border: 1px dashed var(--gold);">
+                <div>
+                    <h4 style="margin: 0; color: var(--gold); letter-spacing: 2px;">${coupon.code}</h4>
+                    <p style="margin: 4px 0 0; font-size: 0.8rem; color: var(--text-muted);">${coupon.discountPercentage}% OFF &middot; Expires: ${new Date(coupon.expiryDate).toLocaleDateString()}</p>
+                </div>
+                <button onclick="deleteOffer('${coupon._id}')" style="background: rgba(255, 71, 87, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 8px 12px; border-radius: 6px; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        `).join('');
+
+    } catch (error) {
+        console.error("Fetch Offers Error:", error);
+        listContainer.innerHTML = '<p style="color: var(--danger); text-align:center;">API Route /coupons not ready yet.</p>';
+    }
+}
+
+if(addOfferForm) {
+    addOfferForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("add-offer-btn");
+        btn.innerText = "Creating... ⏳";
+        btn.disabled = true;
+
+        const payload = {
+            code: document.getElementById("o-code").value.toUpperCase(),
+            discountPercentage: document.getElementById("o-discount").value,
+            expiryDate: document.getElementById("o-expiry").value
+        };
+
+        try {
+            const token = localStorage.getItem("adminToken");
+            const res = await fetch(`${API_URL}/coupons`, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}` 
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+            
+            alert("Premium Coupon Created! 🎉");
+            addOfferForm.reset();
+            fetchAdminOffers(); 
+            
+        } catch (error) {
+            console.error("Save Coupon Error:", error);
+            alert("Failed to create coupon.");
+        } finally {
+            btn.innerText = "Create Coupon";
+            btn.disabled = false;
+        }
+    });
+}
+
+async function deleteOffer(id) {
+    if (!confirm("Revoke this coupon? 🗑️")) return;
+    try {
+        const token = localStorage.getItem("adminToken");
+        const res = await fetch(`${API_URL}/coupons/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        fetchAdminOffers(); 
+    } catch (error) {
+        alert("Failed to delete coupon.");
     }
 }
